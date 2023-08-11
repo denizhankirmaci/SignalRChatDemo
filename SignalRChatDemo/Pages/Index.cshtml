@@ -10,6 +10,9 @@
 </div>
 
 <div class="container">
+    <div>
+        <input type="button" id="joinGroup" value="Join Private Group" />
+    </div>
     <div class="row">&nbsp;</div>
     <div class="row">
         <div class="col-2">User</div>
@@ -42,11 +45,16 @@
 
     "use strict";
 
-    var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+    //var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+    var connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:5001/chatHub").build();
 
     //Disable the send button until connection is established.
     document.getElementById("sendButton").disabled = true;
 
+
+    //tüm clientlara gönderilen herşey burada okunur. yani gruba join olursan clients.all ve gruptaki mesajlar dinlenir.
+    //gruba join olmazsan clients.all.send olan mesajlar akar sadece.
+    //await _chatHub.Clients.All.SendAsync("ReceiveMessage", model.MessageText);
     connection.on("ReceiveMessage", function (user, message) {
         var li = document.createElement("li");
         document.getElementById("messagesList").appendChild(li);
@@ -62,10 +70,33 @@
         return console.error(err.toString());
     });
 
+    // connection.start().then(res => {
+    //     connection.invoke("JoinGroup", "025f70d2-8ae3-487c-a407-d3b197c5de01")  //JoinGroup is C# method name
+    //         .catch(err => {
+    //             console.log(err);
+    //         });
+    // }).catch(err => {
+    //     console.log(err);
+    // });;
+
     document.getElementById("sendButton").addEventListener("click", function (event) {
         var user = document.getElementById("userInput").value;
         var message = document.getElementById("messageInput").value;
+        //HubConnection ı sağlayan yerdeki ChatHub.cs deki sınıflar. Burada Localde mesela SendMessage var. ama duello da bu yok, uzaktaki yani duellodakileri kullanmak icin yazmak lazım.
+        //bu bu şekilde durursa uzaktakinde SendMessage olmadığı icin gönderme işlemi yapmayacaktır.
         connection.invoke("SendMessage", user, message).catch(function (err) {
+
+        //connection.invoke("ReceiveMessage", user, message).catch(function (err) {
+            return console.error(err.toString());
+        });
+        event.preventDefault();
+    });
+
+
+    //özel bir gruba yollanan mesajları dinlemek icin ilk gruba join olmak lazım. Guid id var olan bir grubumun id si
+    //await _chatHub.Clients.Group(groupName).SendAsync("ReceiveMessage", model.MessageText);
+    document.getElementById("joinGroup").addEventListener("click", function (event) {
+        connection.invoke("JoinChatRoom", "025f70d2-8ae3-487c-a407-d3b197c5de01").catch(function (err) {
             return console.error(err.toString());
         });
         event.preventDefault();
